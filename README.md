@@ -6,14 +6,14 @@
 
 ## Features
 
-| Feature | Description |
-|---------|-------------|
-| 🕵️ **Smart Watcher** | Monitors your repo in the background with a 750 ms debounce |
-| 🤖 **Map-Reduce AI** | Analyzes up to 90 files in parallel (max 5 Groq calls at once) |
-| 🔒 **Privacy First** | Blocks `.env`, private keys, certs, and binaries from ever reaching the API |
-| 🌿 **Review Branch** | Creates `supergit-review/<ts>` for human validation before merging |
-| ⚡ **Circuit Breaker** | Falls back to a generic message after 3 API failures |
-| 📋 **Audit Log** | Full log of every AI prompt/response for accountability |
+| Feature                | Description                                                                 |
+| ---------------------- | --------------------------------------------------------------------------- |
+| 🕵️ **Smart Watcher**   | Monitors your repo in the background with a 750 ms debounce                 |
+| 🤖 **Map-Reduce AI**   | Analyzes up to 90 files in parallel (max 5 Groq calls at once)              |
+| 🔒 **Privacy First**   | Blocks `.env`, private keys, certs, and binaries from ever reaching the API |
+| 🌿 **Review Branch**   | Creates `supergit-review/<ts>` for human validation before merging          |
+| ⚡ **Circuit Breaker** | Falls back to a generic message after 3 API failures                        |
+| 📋 **Audit Log**       | Full log of every AI prompt/response for accountability                     |
 
 ---
 
@@ -36,6 +36,7 @@ pip install -e .
 > **Tip**: Use a virtual environment: `python -m venv .venv && source .venv/bin/activate`
 
 On the first run, SuperGit will:
+
 1. Verify `git` is installed (offer Homebrew install on macOS)
 2. Verify you're in a git repository (offer `git init`)
 3. Prompt for your Groq API key and save it securely to `~/.supergit/.env`
@@ -62,7 +63,7 @@ supergit commit
 
 Start the background file watcher.
 
-- **`ia-off`** *(default)*: Diffs are saved to SQLite. AI analysis runs only when you call `supergit commit`.
+- **`ia-off`** _(default)_: Diffs are saved to SQLite. AI analysis runs only when you call `supergit commit`.
 - **`ia-on`**: Each file save immediately triggers a Groq MAP analysis, so `supergit status` shows live AI explanations of what you're building.
 
 ```bash
@@ -139,14 +140,14 @@ Show the last N AI interactions from the audit log (default: 20).
 
 ## Security
 
-| Guarantee | Implementation |
-|-----------|----------------|
-| No push to remote | `git push` is never called |
-| No binaries to AI | Binary sniff (null bytes) + extension blocklist |
+| Guarantee                | Implementation                                      |
+| ------------------------ | --------------------------------------------------- |
+| No push to remote        | `git push` is never called                          |
+| No binaries to AI        | Binary sniff (null bytes) + extension blocklist     |
 | Credential files blocked | SENSITIVE_DENYLIST: `.env`, `*.pem`, `id_rsa`, etc. |
-| No shell injection | All `subprocess` calls use list form, `shell=False` |
-| Prompt injection guard | All diff content wrapped in `<DIFF_DATA>` tags |
-| Key at rest | `~/.supergit/.env` with `chmod 600` |
+| No shell injection       | All `subprocess` calls use list form, `shell=False` |
+| Prompt injection guard   | All diff content wrapped in `<DIFF_DATA>` tags      |
+| Key at rest              | `~/.supergit/.env` with `chmod 600`                 |
 
 ---
 
@@ -192,4 +193,4 @@ pytest tests/ -v
 
 ## License
 
-MIT
+# MIT
