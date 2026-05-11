@@ -461,10 +461,10 @@ def cmd_commit() -> None:
             capture_output=True,
         )
     except subprocess.CalledProcessError as e:
-        console.print(ft("commit_branch_failed", error=e.stderr.decode()))
+        console.print(t("commit_branch_failed", error=e.stderr.decode()))
         raise typer.Exit(1)
 
-    console.print(ft("commit_branch_created", branch=review_branch))
+    console.print(t("commit_branch_created", branch=review_branch))
 
     # ── Run Map-Reduce ────────────────────────────────────────────────────
     console.print("\n[bold yellow]⚙  Running AI analysis (Map-Reduce)…[/bold yellow]")
