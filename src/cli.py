@@ -168,7 +168,30 @@ def _ensure_setup(require_api_key: bool = True) -> str | None:
         else:
             raise typer.Exit(1)
 
-    # ── 3. API Key ─────────────────────────────────────────────────────
+    # ── 3. Git Identity Configured? ─────────────────────────────────────
+    # Check if user.name and user.email are set globally or locally
+    name_check = subprocess.run(["git", "config", "user.name"], capture_output=True)
+    email_check = subprocess.run(["git", "config", "user.email"], capture_output=True)
+    
+    if name_check.returncode != 0 or email_check.returncode != 0:
+        console.print(
+            Panel(
+                "[bold yellow]Your Git identity is not configured.[/bold yellow]\n"
+                "Git needs to know who you are to create commits.",
+                title="⚠️  Missing Git Config",
+            )
+        )
+        name = Prompt.ask("Enter your full name (e.g., Jane Doe)")
+        email = Prompt.ask("Enter your email address (e.g., jane@example.com)")
+        if name.strip() and email.strip():
+            subprocess.run(["git", "config", "--global", "user.name", name.strip()], check=True)
+            subprocess.run(["git", "config", "--global", "user.email", email.strip()], check=True)
+            console.print("[green]✓ Git identity configured globally.[/green]")
+        else:
+            console.print("[red]Name and email are required. Aborting.[/red]")
+            raise typer.Exit(1)
+
+    # ── 4. API Key ─────────────────────────────────────────────────────
     if not require_api_key:
         return None
 
@@ -284,12 +307,37 @@ def cmd_new(
         # Check if there are staged changes to commit
         status = subprocess.run(["git", "diff", "--cached", "--quiet"])
         if status.returncode != 0:
-            subprocess.run(
+            commit_res = subprocess.run(
                 ["git", "commit", "-m", "chore: initial commit via supergit"],
-                check=True,
-                capture_output=True
+                capture_output=True,
+                text=True
             )
-            console.print("[green]✓ Created initial commit.[/green]")
+            if commit_res.returncode == 0:
+                console.print("[green]✓ Created initial commit.[/green]")
+            else:
+                console.print("\n[bold red]❌ Git commit failed.[/bold red]")
+                error_text = commit_res.stderr.strip() or commit_res.stdout.strip()
+                
+                api_key = _get_api_key()
+                if api_key and error_text:
+                    console.print("\n[bold cyan]🤖 Consultando a la IA para diagnosticar el problema...[/bold cyan]")
+                    async def _explain():
+                        async with AIEngine(api_key) as engine:
+                            return await engine.explain_git_error("git commit -m '...'", error_text)
+                    
+                    with console.status("[bold cyan]Analizando error...[/bold cyan]"):
+                        explanation = run_sync(_explain())
+                    
+                    console.print(
+                        Panel(
+                            explanation,
+                            title="💡 Solución propuesta por SuperGit AI",
+                            border_style="yellow"
+                        )
+                    )
+                else:
+                    console.print(f"[dim]Commit failed: {error_text}[/dim]")
+                raise typer.Exit(1)
         else:
             console.print("[yellow]No changes to commit.[/yellow]")
     except subprocess.CalledProcessError as e:
