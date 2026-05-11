@@ -35,6 +35,7 @@ from rich.columns import Columns
 from rich.console import Console
 from rich.markup import escape
 from rich.panel import Panel
+from rich.markdown import Markdown
 from rich.prompt import Confirm, Prompt
 from rich.syntax import Syntax
 from rich.table import Table
@@ -330,7 +331,7 @@ def cmd_new(
                     
                     console.print(
                         Panel(
-                            explanation,
+                            Markdown(explanation),
                             title="💡 Solución propuesta por SuperGit AI",
                             border_style="yellow"
                         )
@@ -380,7 +381,7 @@ def cmd_new(
                     
                     console.print(
                         Panel(
-                            explanation,
+                            Markdown(explanation),
                             title="💡 Solución propuesta por SuperGit AI",
                             border_style="yellow"
                         )
