@@ -677,14 +677,47 @@ def cmd_config() -> None:
             run_sync(_clear())
             console.print("[green]✓ Pending events cleared.[/green]")
 
+    clear_logs = Confirm.ask("Clear all AI audit logs?", default=False)
+    if clear_logs:
+        confirmed = Confirm.ask("[red]Are you sure? This cannot be undone.[/red]", default=False)
+        if confirmed:
+            async def _clear_audit():
+                async with DatabaseManager() as db:
+                    await db.clear_audit_logs()
+            run_sync(_clear_audit())
+            console.print("[green]✓ AI audit logs cleared.[/green]")
+
 
 # ── supergit logs ─────────────────────────────────────────────────────────
 
 @app.command("logs")
 def cmd_logs(
+    log_id: Optional[int] = typer.Argument(None, help="Specific log ID to view in full"),
     n: int = typer.Option(20, "--n", help="Number of log entries to show"),
 ) -> None:
     """[bold]View[/bold] the AI interaction audit log."""
+    
+    if log_id is not None:
+        async def _fetch_one():
+            async with DatabaseManager() as db:
+                return await db.get_log(log_id)
+                
+        entry = run_sync(_fetch_one())
+        if not entry:
+            console.print(f"[red]Log entry {log_id} not found.[/red]")
+            return
+            
+        ts = datetime.fromtimestamp(entry["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
+        console.print(f"[bold]Log ID:[/bold] {entry['id']}  |  [bold]Time:[/bold] {ts}")
+        console.print(f"[bold]File:[/bold] {entry.get('filepath') or 'REDUCE'}")
+        console.print(f"[bold]Model:[/bold] {entry.get('model')}  |  [bold]Tokens:[/bold] {entry.get('tokens_used') or 0}")
+        if entry.get("error"):
+            console.print(f"[bold red]Error:[/bold red] {entry['error']}")
+            
+        response = entry.get("response") or ""
+        console.print(Panel(Markdown(response), title="🤖 AI Response", border_style="cyan"))
+        return
+
     async def _fetch():
         async with DatabaseManager() as db:
             return await db.get_logs(n)

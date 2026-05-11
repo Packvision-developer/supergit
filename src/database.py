@@ -160,6 +160,22 @@ class DatabaseManager:
         rows = await cursor.fetchall()
         return [dict(r) for r in rows]
 
+    async def get_log(self, log_id: int) -> dict | None:
+        """Fetch a specific log entry by its ID."""
+        assert self._conn
+        cursor = await self._conn.execute(
+            "SELECT * FROM audit_log WHERE id = ?",
+            (log_id,)
+        )
+        row = await cursor.fetchone()
+        return dict(row) if row else None
+
+    async def clear_audit_logs(self) -> None:
+        """Delete all entries from the audit_log table."""
+        assert self._conn
+        await self._conn.execute("DELETE FROM audit_log")
+        await self._conn.commit()
+
     async def append_audit(
         self,
         *,
