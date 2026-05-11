@@ -54,8 +54,9 @@ console = Console()
 
 app = typer.Typer(
     name="supergit",
-    help="🔭 SuperGit — AI-powered Git commit assistant",
-    add_completion=False,
+    help="[bold blue]🔭 SuperGit[/bold blue] — AI-powered Git commit assistant",
+    context_settings={"help_option_names": ["-h", "--help"]},
+    add_completion=True,
     rich_markup_mode="rich",
 )
 
