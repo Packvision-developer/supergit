@@ -46,19 +46,42 @@ from .database import DatabaseManager, run_sync
 from .filters import should_process
 
 # ---------------------------------------------------------------------------
-# Constants
+# Constants & Early Setup
 # ---------------------------------------------------------------------------
+from pathlib import Path
+from dotenv import load_dotenv
+
 SUPERGIT_DIR = Path.home() / ".supergit"
 ENV_FILE = SUPERGIT_DIR / ".env"
+
+if ENV_FILE.is_file():
+    load_dotenv(ENV_FILE, override=False)
+
+import os
+from . import i18n
+lang = os.environ.get("SUPERGIT_LANG", "en")
+i18n.set_language(lang)
+from .i18n import t
+
 console = Console()
 
 app = typer.Typer(
     name="supergit",
-    help="[bold blue]🔭 SuperGit[/bold blue] — AI-powered Git commit assistant",
+    help=t("cmd_supergit_help", key="[bold blue]🔭 SuperGit[/bold blue] — Asistente IA de Git" if lang=="es" else "[bold blue]🔭 SuperGit[/bold blue] — AI-powered Git commit assistant"),
     context_settings={"help_option_names": ["-h", "--help"]},
     add_completion=True,
     rich_markup_mode="rich",
 )
+
+# ---------------------------------------------------------------------------
+# Default Command (Help)
+# ---------------------------------------------------------------------------
+@app.callback(invoke_without_command=True)
+def main_callback(ctx: typer.Context) -> None:
+    """SuperGit callback to show help if no command is provided."""
+    if ctx.invoked_subcommand is None:
+        console.print(ctx.get_help())
+        raise typer.Exit()
 
 # ---------------------------------------------------------------------------
 # Helpers — setup & validation
@@ -71,21 +94,24 @@ def _load_env() -> None:
         load_dotenv(ENV_FILE, override=False)
 
 
-def _get_api_key() -> str | None:
-    """Return GROQ_API_KEY from env, or None."""
+def _get_env_var(key: str) -> str | None:
     _load_env()
-    return os.environ.get("GROQ_API_KEY") or os.environ.get("SUPERGIT_GROQ_KEY")
+    return os.environ.get(key)
 
-
-def _save_api_key(key: str) -> None:
-    """Persist GROQ_API_KEY to ~/.supergit/.env."""
+def _save_env_var(key: str, val: str) -> None:
     SUPERGIT_DIR.mkdir(parents=True, exist_ok=True)
     existing = ENV_FILE.read_text() if ENV_FILE.is_file() else ""
-    lines = [l for l in existing.splitlines() if not l.startswith("GROQ_API_KEY")]
-    lines.append(f"GROQ_API_KEY={key}")
+    lines = [l for l in existing.splitlines() if not l.startswith(key)]
+    lines.append(f"{key}={val}")
     ENV_FILE.write_text("\n".join(lines) + "\n")
-    # Restrict permissions
     ENV_FILE.chmod(0o600)
+
+def _get_api_key() -> str | None:
+    return _get_env_var("GROQ_API_KEY") or _get_env_var("SUPERGIT_GROQ_KEY")
+
+def _save_api_key(key: str) -> None:
+    _save_env_var("GROQ_API_KEY", key)
+
 
 
 def _git_is_installed() -> bool:
@@ -129,9 +155,14 @@ def _current_branch() -> str:
 def _ensure_setup(require_api_key: bool = True) -> str | None:
     """
     First-run wizard.
-    Returns the GROQ_API_KEY if require_api_key=True, else None.
-    Exits with helpful messages if prerequisites are missing.
     """
+    _load_env()
+    lang = _get_env_var("SUPERGIT_LANG")
+    if not lang:
+        lang = Prompt.ask("Select your preferred language / Selecciona tu idioma preferido [en/es]", choices=["en", "es"], default="en")
+        _save_env_var("SUPERGIT_LANG", lang)
+    i18n.set_language(lang)
+
     # ── 1. Git installed? ───────────────────────────────────────────────
     if not _git_is_installed():
         console.print(
@@ -158,8 +189,8 @@ def _ensure_setup(require_api_key: bool = True) -> str | None:
     if not _cwd_is_git_repo():
         console.print(
             Panel(
-                "[yellow]The current directory is not a git repository.[/yellow]",
-                title="⚠️  No Git Repo",
+                t("setup_not_git_repo"),
+                title=t("setup_not_git_repo_title"),
             )
         )
         init = Confirm.ask("Initialize a git repository here?", default=True)
@@ -197,7 +228,7 @@ def _ensure_setup(require_api_key: bool = True) -> str | None:
 # Commands
 # ---------------------------------------------------------------------------
 
-@app.command("start")
+@app.command("start", help=t("cmd_start_help"))
 def cmd_start(
     mode: str = typer.Option(
         "ia-off",
@@ -207,7 +238,6 @@ def cmd_start(
         show_default=True,
     ),
 ) -> None:
-    """[bold green]Start[/bold green] the SuperGit background watcher."""
     if mode not in ("ia-off", "ia-on"):
         console.print("[red]Invalid mode. Use ia-off or ia-on.[/red]")
         raise typer.Exit(1)
@@ -239,11 +269,10 @@ def cmd_start(
         raise typer.Exit(1)
 
 
-@app.command("new")
+@app.command("new", help=t("cmd_new_help"))
 def cmd_new(
     url: str = typer.Argument(..., help="The remote Git repository URL (https/ssh)"),
 ) -> None:
-    """[bold magenta]Initialize[/bold magenta] a new repo and upload to remote."""
     # 1. Ensure git is installed
     if not _git_is_installed():
         console.print("[red]❌ Git is not installed.[/red]")
@@ -344,9 +373,8 @@ def cmd_new(
         console.print(f"[red]Failed during branch rename: {e}[/red]")
 
 
-@app.command("stop")
+@app.command("stop", help=t("cmd_stop_help"))
 def cmd_stop() -> None:
-    """[bold red]Stop[/bold red] the SuperGit background watcher."""
     stopped = stop_daemon()
     if stopped:
         console.print("[green]✓ SuperGit watcher stopped.[/green]")
@@ -354,16 +382,15 @@ def cmd_stop() -> None:
         console.print("[yellow]No watcher was running.[/yellow]")
 
 
-@app.command("status")
+@app.command("status", help=t("cmd_status_help"))
 def cmd_status() -> None:
-    """Show watcher status and pending uncommitted events."""
     _ensure_setup(require_api_key=False)
     repo_root = _get_repo_root()
     status = daemon_status()
 
     # Watcher state panel
     state_color = "green" if status["running"] else "red"
-    state_label = "RUNNING" if status["running"] else "STOPPED"
+    state_label = t("status_running") if status["running"] else t("status_stopped")
     console.print(
         Panel(
             f"  Status  : [{state_color}]{state_label}[/{state_color}]\n"
@@ -403,9 +430,8 @@ def cmd_status() -> None:
     console.print(table)
 
 
-@app.command("commit")
+@app.command("commit", help=t("cmd_commit_help"))
 def cmd_commit() -> None:
-    """[bold blue]Analyse changes and create a reviewed commit.[/bold blue]"""
     api_key = _ensure_setup(require_api_key=True)
     assert api_key
     repo_root = _get_repo_root()
@@ -419,7 +445,7 @@ def cmd_commit() -> None:
     events = run_sync(_fetch())
 
     if not events:
-        console.print("[yellow]No pending changes to commit.[/yellow]")
+        console.print(t("commit_no_pending"))
         raise typer.Exit(0)
 
     console.print(f"\n[bold]Found [cyan]{len(events)}[/cyan] pending file change(s).[/bold]")
@@ -435,10 +461,10 @@ def cmd_commit() -> None:
             capture_output=True,
         )
     except subprocess.CalledProcessError as e:
-        console.print(f"[red]Could not create review branch: {e.stderr.decode()}[/red]")
+        console.print(ft("commit_branch_failed", error=e.stderr.decode()))
         raise typer.Exit(1)
 
-    console.print(f"[green]✓ Created branch [bold]{review_branch}[/bold][/green]")
+    console.print(ft("commit_branch_created", branch=review_branch))
 
     # ── Run Map-Reduce ────────────────────────────────────────────────────
     console.print("\n[bold yellow]⚙  Running AI analysis (Map-Reduce)…[/bold yellow]")
@@ -448,14 +474,14 @@ def cmd_commit() -> None:
             async with AIEngine(api_key, db) as engine:
                 return await engine.run_commit_analysis(events)
 
-    with console.status("[bold cyan]Contacting Groq…[/bold cyan]"):
+    with console.status(t("commit_contacting_groq")):
         commit_msg = run_sync(_analyse())
 
     # ── Show proposed commit message ──────────────────────────────────────
     console.print(
         Panel(
             escape(commit_msg),
-            title="✨ Proposed Commit Message",
+            title=t("commit_proposal_title"),
             border_style="cyan",
         )
     )
@@ -470,7 +496,7 @@ def cmd_commit() -> None:
             "  [bold blue][V][/bold blue] View diff of a specific file\n"
             "  [bold red][A][/bold red] Abort (stay on review branch)\n"
         )
-        choice = Prompt.ask("Choice", choices=["m", "e", "v", "a", "M", "E", "V", "A"]).lower()
+        choice = Prompt.ask(t("commit_choice_prompt"), choices=["m", "e", "v", "a", "M", "E", "V", "A"]).lower()
 
         if choice == "m":
             _do_merge(events, commit_msg, review_branch, original_branch, repo_root)
@@ -609,7 +635,7 @@ def _do_view_diff(events: list[dict]) -> None:
 
 # ── supergit + <file> ─────────────────────────────────────────────────────
 
-@app.command("view")
+@app.command("view", help=t("cmd_view_help"))
 def cmd_view(
     file: str = typer.Argument(..., help="Relative path of the file to view diff for"),
 ) -> None:
@@ -641,31 +667,40 @@ def cmd_view(
 
 # ── supergit config ───────────────────────────────────────────────────────
 
-@app.command("config")
+@app.command("config", help=t("cmd_config_help"))
 def cmd_config() -> None:
-    """[bold]View or update[/bold] SuperGit configuration."""
     _load_env()
+    i18n.set_language(_get_env_var("SUPERGIT_LANG") or "en")
+    
     console.print(
         Panel(
             f"  Config dir : {SUPERGIT_DIR}\n"
             f"  .env file  : {ENV_FILE}\n"
             f"  API key    : {'[green]set[/green]' if _get_api_key() else '[red]NOT SET[/red]'}\n"
+            f"  Language   : {_get_env_var('SUPERGIT_LANG') or 'en'}\n"
             f"  DB path    : {SUPERGIT_DIR / 'events.db'}\n"
             f"  Logs       : {SUPERGIT_DIR / 'logs'}",
             title="⚙️  SuperGit Config",
         )
     )
 
-    update = Confirm.ask("\nUpdate API key?", default=False)
+    update = Confirm.ask(t("config_update_api"), default=False)
     if update:
-        new_key = Prompt.ask("New Groq API key", password=True)
+        new_key = Prompt.ask(t("config_new_api"), password=True)
         if new_key.strip():
             _save_api_key(new_key.strip())
-            console.print("[green]✓ API key updated.[/green]")
+            console.print(t("config_api_updated"))
 
-    reset = Confirm.ask("Clear all pending events (does NOT undo git changes)?", default=False)
+    change_lang = Confirm.ask(t("config_change_lang"), default=False)
+    if change_lang:
+        new_lang = Prompt.ask("Language [en/es]", choices=["en", "es"], default="en")
+        _save_env_var("SUPERGIT_LANG", new_lang)
+        i18n.set_language(new_lang)
+        console.print(t("config_lang_updated"))
+
+    reset = Confirm.ask(t("config_clear_events"), default=False)
     if reset:
-        confirmed = Confirm.ask("[red]Are you sure?[/red]", default=False)
+        confirmed = Confirm.ask(f"[red]{t('config_are_you_sure')}[/red]", default=False)
         if confirmed:
             # Mark everything as committed
             async def _clear():
@@ -691,12 +726,11 @@ def cmd_config() -> None:
 
 # ── supergit logs ─────────────────────────────────────────────────────────
 
-@app.command("logs")
+@app.command("logs", help=t("cmd_logs_help"))
 def cmd_logs(
     log_id: Optional[int] = typer.Argument(None, help="Specific log ID to view in full"),
     n: int = typer.Option(20, "--n", help="Number of log entries to show"),
 ) -> None:
-    """[bold]View[/bold] the AI interaction audit log."""
     
     if log_id is not None:
         async def _fetch_one():

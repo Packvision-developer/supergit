@@ -26,6 +26,7 @@ from typing import NamedTuple
 from groq import AsyncGroq
 
 from .database import DatabaseManager
+from . import i18n
 
 logger = logging.getLogger("supergit.ai")
 
@@ -238,7 +239,8 @@ class AIEngine:
 
         prompt = (
             f"Analyze the change in the file `{filepath}` and summarize in one "
-            f"technical sentence what functionality was added, fixed, or refactored.\n\n"
+            f"technical sentence what functionality was added, fixed, or refactored.\n"
+            f"IMPORTANT: You MUST write your response in {i18n.get_language()}.\n\n"
             f"<DIFF_DATA>\n{diff_text}\n</DIFF_DATA>"
         )
         prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()[:16]
@@ -316,6 +318,7 @@ class AIEngine:
             "  2. Blank line\n"
             "  3. Bullet list of key changes (mention file names, line ranges if known)\n"
             "  4. If breaking change, add `BREAKING CHANGE:` footer\n\n"
+            f"IMPORTANT: You MUST write your response in {i18n.get_language()}.\n\n"
             "File summaries:\n"
             f"<DIFF_DATA>\n{summary_block}\n</DIFF_DATA>\n\n"
             "Respond with ONLY the commit message, no extra explanation."
@@ -375,10 +378,11 @@ class AIEngine:
         prompt = (
             f"A system command failed:\n`{command}`\n\n"
             f"Error output:\n```\n{stderr}\n```\n\n"
-            "Eres un asistente técnico senior en español.\n"
-            "1. Explica brevemente qué salió mal en 1 o 2 oraciones.\n"
-            "2. Proporciona los comandos exactos necesarios para solucionar el problema.\n"
-            "Responde con formato Markdown amigable."
+            "You are a senior technical assistant.\n"
+            "1. Briefly explain what went wrong in 1 or 2 sentences.\n"
+            "2. Provide the exact commands needed to fix the problem.\n"
+            "Respond in friendly Markdown format.\n"
+            f"IMPORTANT: You MUST write your response in {i18n.get_language()}."
         )
 
         try:
