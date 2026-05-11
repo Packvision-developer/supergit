@@ -1,204 +1,134 @@
 # 🔭 SuperGit v2.0
 
-> **AI-powered Git commit assistant.** SuperGit monitors your file saves, analyzes your code changes using Groq's Llama-3.3-70b-versatile model, and proposes professional [Conventional Commits](https://conventionalcommits.org) — without interrupting your flow.
+> **AI-powered Git commit assistant.** SuperGit monitors your file saves, analyzes code changes using Groq's Llama-3.3-70b model, and proposes professional [Conventional Commits](https://conventionalcommits.org) — seamlessly and without interruptions.
 
 ---
 
-## Features
+## 🌟 Features
 
-| Feature                | Description                                                                 |
-| ---------------------- | --------------------------------------------------------------------------- |
-| 🕵️ **Smart Watcher**   | Monitors your repo in the background with a 750 ms debounce                 |
-| 🤖 **Map-Reduce AI**   | Analyzes up to 90 files in parallel (max 5 Groq calls at once)              |
-| 🔒 **Privacy First**   | Blocks `.env`, private keys, certs, and binaries from ever reaching the API |
-| 🌿 **Review Branch**   | Creates `supergit-review/<ts>` for human validation before merging          |
-| ⚡ **Circuit Breaker** | Falls back to a generic message after 3 API failures                        |
-| 📋 **Audit Log**       | Full log of every AI prompt/response for accountability                     |
-
----
-
-## Prerequisites
-
-- Python ≥ 3.11
-- git ≥ 2.x
-- A free [Groq API key](https://console.groq.com)
+| Feature                 | Description                                                                 |
+| ----------------------- | --------------------------------------------------------------------------- |
+| 🌎 **Multi-Language**    | Full English / Spanish UI & AI outputs, configurable on first run.          |
+| 🕵️ **Smart Watcher**    | Monitors your repo in background with a 750ms debounce.                     |
+| 🤖 **Map-Reduce AI**    | Parallel Groq calls analyze all changed files simultaneously.               |
+| 📜 **Enhanced Logs**    | Browse full AI interaction histories & clean logs instantly.                |
+| 🔒 **Privacy First**    | Automatic blocklist for `.env`, secrets, private keys, and binaries.        |
+| 🌿 **Review Branch**    | Safe `supergit-review/<ts>` branch for squash-merging human review.         |
+| ⚡ **Circuit Breaker**  | Automatically falls back to safe generic commits if API hits limits.        |
+| ⌨️ **Shell Complete**   | Native autocomplete support for Bash / Zsh.                                 |
 
 ---
 
-## Installation
+## 📋 Prerequisites
+
+- **Python**: ≥ 3.11
+- **Git**: ≥ 2.x installed
+- **Groq Cloud API**: A free [API key](https://console.groq.com)
+
+---
+
+## ⚙️ Installation
+
+Clone and install the tool locally using editable mode:
 
 ```bash
-git clone https://github.com/you/supergit
+git clone https://github.com/Packvision-developer/supergit
 cd supergit
 pip install -e .
 ```
 
-> **Tip**: Use a virtual environment: `python -m venv .venv && source .venv/bin/activate`
+> **💡 Pro Tip**: We recommend using a virtual environment!
+> ```bash
+> python -m venv .venv
+> source .venv/bin/activate
+> ```
 
-On the first run, SuperGit will:
+### Shell Autocompletion
 
-1. Verify `git` is installed (offer Homebrew install on macOS)
-2. Verify you're in a git repository (offer `git init`)
-3. Prompt for your Groq API key and save it securely to `~/.supergit/.env`
+SuperGit supports auto-suggestions in your shell! Just run:
+```bash
+supergit --install-completion
+```
+Then restart your terminal. You'll enjoy auto-completion using `TAB` for all commands.
 
 ---
 
-## Quick Start
+## 🚀 Getting Started
+
+On its very first run, SuperGit will launch an interactive configuration wizard that asks for your **Preferred Language** and your **Groq API Key**.
 
 ```bash
-# 1. Start the background watcher (ia-off by default)
+# 1. Fire up the background watcher (running silently)
 supergit start
 
-# 2. ... write code, save files ...
+# 2. ... edit code and save your files ...
 
-# 3. When ready to commit:
+# 3. Review pending changes and commit with AI
 supergit commit
 ```
 
 ---
 
-## Commands
+## 📖 Command Reference
+
+### `supergit` (Default Help)
+Running `supergit` alone outputs full command help directly to your terminal console. 
+Alias: `-h` or `--help`.
 
 ### `supergit start [--mode ia-off|ia-on]`
+Launches the background watcher daemon.
+- **`ia-off` (Default)**: Saves local diffs efficiently. AI generates the commit message only at the final step.
+- **`ia-on`**: Analyzes every save instantly. `supergit status` lists exactly what your code is doing in real-time.
 
-Start the background file watcher.
-
-- **`ia-off`** _(default)_: Diffs are saved to SQLite. AI analysis runs only when you call `supergit commit`.
-- **`ia-on`**: Each file save immediately triggers a Groq MAP analysis, so `supergit status` shows live AI explanations of what you're building.
-
-```bash
-supergit start
-supergit start --mode ia-on
-```
-
-### `supergit new <url>`
-
-Initializes a brand new local repository (if not already one), links it to the provided remote URL as `origin`, stages all current files, creates an initial commit, and pushes everything to the `main` branch.
-
-```bash
-supergit new https://github.com/user/my-project.git
-```
-
-### `supergit stop`
-
-Stop the background watcher.
+### `supergit new <git-url>`
+Kickstarts a brand-new development project! 
+Initializes the Git repo, connects to your remote, performs the initial commit, creates the `main` branch, and performs a clean upstream push.
 
 ### `supergit status`
-
-Show watcher state and all pending (uncommitted) changes:
-
-```
-  Status  : RUNNING
-  PID     : 12345
-  Mode    : ia-off
-  Repo    : /Users/you/my-project
-```
-
-Followed by a table of pending files with AI analysis (if `ia-on`).
+Shows real-time daemon states (PID, running directory, mode) along with a neat Rich table of uncommitted files awaiting AI consolidation.
 
 ### `supergit commit`
+The flagship workflow. It creates an automated snapshot branch, streams Groq intelligence, presents your AI-crafted Conventional Commit message, and serves an interactive menu:
+- **[M] Merge**: Squash and merge instantly back to main.
+- **[E] Edit**: Open the message in your system text editor.
+- **[V] View**: Inspect file diffs on-screen.
+- **[A] Abort**: Terminate the review process without losing code.
 
-The main command. It:
-
-1. Creates a `supergit-review/<timestamp>` branch
-2. Runs the Map-Reduce pipeline (MAP each file → REDUCE to one commit)
-3. Presents the proposed Conventional Commit message
-4. Offers an interactive menu:
-
-```
-  [M] Merge — squash into your working branch, delete review branch
-  [E] Edit  — open $EDITOR to tweak the message
-  [V] View  — show the diff of a specific file
-  [A] Abort — stay on review branch for manual handling
-```
-
-### `supergit view <file>`
-
-Show the colorized diff for a specific pending file:
-
-```bash
-supergit view src/auth.py
-```
-
-Also accessible as `[V]` inside the interactive commit screen.
+### `supergit view <file_path>`
+Pipes a specific pending diff directly into your terminal for inspection before committing.
 
 ### `supergit config`
+Access global system settings:
+- Modify your language configuration (**Switch between Spanish and English**)
+- Update or replace your Groq API Key
+- Reset stored database events safely
+- Fully purge your AI interaction history logs
 
-View current configuration and optionally update your API key or clear pending events.
+### `supergit logs [--n 20] [log_id]`
+Browses accountability logs of what data reached Groq.
+- Run `supergit logs` to view a table of recent API responses and token usage.
+- Run `supergit logs <id>` to view the **exact markdown solution** generated by the AI for an auditing event.
 
-### `supergit logs [--n N]`
-
-Show the last N AI interactions from the audit log (default: 20).
-
----
-
-## Directory Layout
-
-```
-~/.supergit/
-├── .env          # GROQ_API_KEY (chmod 600)
-├── config        # mode=ia-off, repo_root=...
-├── events.db     # SQLite WAL database
-└── logs/
-    ├── watcher.log   # Watcher stdout/stderr
-    └── errors.log    # Circuit breaker errors
-```
+### `supergit stop`
+Gracefully stops the background watcher service and releases system processes.
 
 ---
 
-## Security
-
-| Guarantee                | Implementation                                      |
-| ------------------------ | --------------------------------------------------- |
-| No push to remote        | `git push` is never called                          |
-| No binaries to AI        | Binary sniff (null bytes) + extension blocklist     |
-| Credential files blocked | SENSITIVE_DENYLIST: `.env`, `*.pem`, `id_rsa`, etc. |
-| No shell injection       | All `subprocess` calls use list form, `shell=False` |
-| Prompt injection guard   | All diff content wrapped in `<DIFF_DATA>` tags      |
-| Key at rest              | `~/.supergit/.env` with `chmod 600`                 |
+## 🛡️ Security & Denylists
+To prevent leakage, SuperGit unconditionally **ignores**:
+- Config/Secrets: `.env`, `.git/`, `*.pem`, `*.key`, `credentials`
+- Large Binaries: PDFs, Zip, images, mp3, executables
+- Environment folders: `.venv`, `node_modules`, `__pycache__`
 
 ---
 
-## Architecture
-
-```
-Developer saves file
-        │
-        ▼
-   [watchdog]  ←──── debounce 750ms ────┐
-        │                                │ (reset on each save)
-        ▼
-   [filters.py]  ──── denied? ──────► skip
-        │
-        ▼
-   [database.py]  ◄── git diff → Base64
-        │
-        ├──── ia-off ─────────────────► supergit commit
-        │
-        └──── ia-on (async MAP) ──────► store ia_analysis
-                                             │
-                              supergit commit
-                                             │
-                                    [ai_engine.py]
-                                    MAP (≤5 parallel, Semaphore)
-                                    ↓ (hunk split if > ~12K tokens)
-                                    REDUCE → Conventional Commit
-                                             │
-                                    [cli.py] Interactive TUI
-                                    [M] Merge / [E] Edit / [V] View / [A] Abort
-```
+## 🏗 Architecture
+1. **Watchdog (watchdog)** watches filesystem events and debounces saves by 750ms.
+2. **Database (sqlite3)** stores b64 encoded diff snippets locally in a `WAL` safe DB.
+3. **Engine (Groq API)** Maps individual diff summaries using semaphore locks and Reduces them into a coherent Git message.
+4. **Interface (Typer/Rich)** Serves interactive beautiful CLI outputs.
 
 ---
 
-## Running Tests
-
-```bash
-pip install -e ".[dev]"
-pytest tests/ -v
-```
-
----
-
-## License
-
-# MIT
+## ⚖ License
+Distributed under the **MIT** License.
