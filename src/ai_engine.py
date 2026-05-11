@@ -362,3 +362,32 @@ class AIEngine:
                 )
 
             return GENERIC_COMMIT_MSG
+
+    # ------------------------------------------------------------------
+    # Diagnostics / Error Explaining
+    # ------------------------------------------------------------------
+
+    async def explain_git_error(self, command: str, stderr: str) -> str:
+        """
+        Analyze a git command failure and suggest an explicit solution.
+        """
+        assert self._client
+        prompt = (
+            f"A system command failed:\n`{command}`\n\n"
+            f"Error output:\n```\n{stderr}\n```\n\n"
+            "Eres un asistente técnico senior en español.\n"
+            "1. Explica brevemente qué salió mal en 1 o 2 oraciones.\n"
+            "2. Proporciona los comandos exactos necesarios para solucionar el problema.\n"
+            "Responde con formato Markdown amigable."
+        )
+
+        try:
+            response = await self._client.chat.completions.create(
+                model=MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=512,
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            return f"No se pudo obtener una explicación de la IA: {e}"

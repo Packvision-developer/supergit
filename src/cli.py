@@ -238,6 +238,111 @@ def cmd_start(
         raise typer.Exit(1)
 
 
+@app.command("new")
+def cmd_new(
+    url: str = typer.Argument(..., help="The remote Git repository URL (https/ssh)"),
+) -> None:
+    """[bold magenta]Initialize[/bold magenta] a new repo and upload to remote."""
+    # 1. Ensure git is installed
+    if not _git_is_installed():
+        console.print("[red]❌ Git is not installed.[/red]")
+        raise typer.Exit(1)
+
+    # 2. Prevent accidental overwriting of an existing setup
+    if _cwd_is_git_repo():
+        console.print(
+            "[yellow]⚠️  This directory is already a Git repository.[/yellow]"
+        )
+        confirm = Confirm.ask("Do you want to add/overwrite the 'origin' remote anyway?", default=False)
+        if not confirm:
+            raise typer.Exit(0)
+    else:
+        # 3. Run git init
+        console.print("[cyan]⚙ Initializing new git repository...[/cyan]")
+        try:
+            subprocess.run(["git", "init"], check=True, capture_output=True)
+            console.print("[green]✓ Git repository initialized.[/green]")
+        except subprocess.CalledProcessError as e:
+            console.print(f"[red]Failed to init git: {e.stderr.decode()}[/red]")
+            raise typer.Exit(1)
+
+    # 4. Add origin
+    console.print(f"[cyan]⚙ Linking remote origin to {url}...[/cyan]")
+    # Attempt removal if it already exists
+    subprocess.run(["git", "remote", "remove", "origin"], capture_output=True)
+    try:
+        subprocess.run(["git", "remote", "add", "origin", url], check=True, capture_output=True)
+        console.print("[green]✓ Remote 'origin' added.[/green]")
+    except subprocess.CalledProcessError as e:
+        console.print(f"[red]Failed to add remote: {e.stderr.decode()}[/red]")
+        raise typer.Exit(1)
+
+    # 5. Initial Commit logic
+    console.print("[cyan]⚙ Staging and committing existing files...[/cyan]")
+    try:
+        subprocess.run(["git", "add", "."], check=True)
+        # Check if there are staged changes to commit
+        status = subprocess.run(["git", "diff", "--cached", "--quiet"])
+        if status.returncode != 0:
+            subprocess.run(
+                ["git", "commit", "-m", "chore: initial commit via supergit"],
+                check=True,
+                capture_output=True
+            )
+            console.print("[green]✓ Created initial commit.[/green]")
+        else:
+            console.print("[yellow]No changes to commit.[/yellow]")
+    except subprocess.CalledProcessError as e:
+        console.print(f"[dim]Commit skip or failed: {e}[/dim]")
+
+    # 6. Set branch name and push
+    console.print("[cyan]⚙ Renaming branch to 'main' and pushing to origin...[/cyan]")
+    try:
+        subprocess.run(["git", "branch", "-M", "main"], check=True, capture_output=True)
+        
+        # 1st run: Allow interactive prompt if necessary (no capture)
+        result = subprocess.run(["git", "push", "-u", "origin", "main"])
+        
+        if result.returncode == 0:
+            console.print(
+                Panel(
+                    "[bold green]🎉 Project successfully uploaded to Git![/bold green]\n"
+                    f"Branch: main\nRemote: {url}",
+                    border_style="green"
+                )
+            )
+        else:
+            console.print("\n[bold red]❌ Git push failed.[/bold red]")
+            
+            # 2nd run: Capture the exact output quietly for the AI diagnostic
+            capture_res = subprocess.run(["git", "push", "-u", "origin", "main"], capture_output=True, text=True)
+            error_text = capture_res.stderr.strip() or capture_res.stdout.strip()
+            
+            if error_text:
+                api_key = _get_api_key()
+                if api_key:
+                    console.print("\n[bold cyan]🤖 Consultando a la IA para diagnosticar el problema...[/bold cyan]")
+                    
+                    async def _explain():
+                        async with AIEngine(api_key) as engine:
+                            return await engine.explain_git_error("git push -u origin main", error_text)
+                    
+                    with console.status("[bold cyan]Analizando error...[/bold cyan]"):
+                        explanation = run_sync(_explain())
+                    
+                    console.print(
+                        Panel(
+                            explanation,
+                            title="💡 Solución propuesta por SuperGit AI",
+                            border_style="yellow"
+                        )
+                    )
+                else:
+                    console.print("[dim](Configura tu GROQ_API_KEY para diagnóstico automático de errores AI)[/dim]")
+    except subprocess.CalledProcessError as e:
+        console.print(f"[red]Failed during branch rename: {e}[/red]")
+
+
 @app.command("stop")
 def cmd_stop() -> None:
     """[bold red]Stop[/bold red] the SuperGit background watcher."""

@@ -71,6 +71,14 @@ supergit start
 supergit start --mode ia-on
 ```
 
+### `supergit new <url>`
+
+Initializes a brand new local repository (if not already one), links it to the provided remote URL as `origin`, stages all current files, creates an initial commit, and pushes everything to the `main` branch.
+
+```bash
+supergit new https://github.com/user/my-project.git
+```
+
 ### `supergit stop`
 
 Stop the background watcher.
