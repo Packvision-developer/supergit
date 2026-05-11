@@ -89,6 +89,13 @@ class _DebounceHandler(FileSystemEventHandler):
         src = event.src_path
         self._schedule(src)
 
+    def on_created(self, event: object) -> None:  # type: ignore[override]
+        if getattr(event, "is_directory", False):
+            return
+        src = getattr(event, "src_path", "")
+        if src:
+            self._schedule(src)
+
     def _schedule(self, filepath: str) -> None:
         with self._lock:
             # Cancel existing timer for this file
