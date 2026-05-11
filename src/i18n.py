@@ -110,6 +110,16 @@ TRANSLATIONS = {
         # Logs command
         "logs_not_found": "Log entry {id} not found.",
         "logs_empty": "No audit log entries yet.",
+        # Commands Help
+        "cmd_start_help": "[bold green]Start[/bold green] the SuperGit background watcher.",
+        "cmd_new_help": "[bold magenta]Initialize[/bold magenta] a new repo and upload to remote.",
+        "cmd_stop_help": "[bold red]Stop[/bold red] the SuperGit background watcher.",
+        "cmd_status_help": "[bold cyan]Show[/bold cyan] watcher status and pending uncommitted events.",
+        "cmd_commit_help": "[bold blue]Analyse[/bold blue] changes and create a reviewed commit.",
+        "cmd_view_help": "[bold yellow]View[/bold yellow] the pending diff for a specific file.",
+        "cmd_config_help": "[bold]View or update[/bold] SuperGit configuration.",
+        "cmd_logs_help": "[bold]View[/bold] the AI interaction audit log.",
+
     },
     "es": {
         # Setup / Ensure Setup
@@ -200,5 +210,15 @@ TRANSLATIONS = {
         # Logs command
         "logs_not_found": "Entrada de log {id} no encontrada.",
         "logs_empty": "No hay entradas de log de auditoría aún.",
+        # Commands Help
+        "cmd_start_help": "[bold green]Iniciar[/bold green] el guardián en segundo plano de SuperGit.",
+        "cmd_new_help": "[bold magenta]Inicializar[/bold magenta] un nuevo repo y subirlo al remoto.",
+        "cmd_stop_help": "[bold red]Detener[/bold red] el guardián en segundo plano de SuperGit.",
+        "cmd_status_help": "[bold cyan]Mostrar[/bold cyan] el estado del guardián y los eventos pendientes.",
+        "cmd_commit_help": "[bold blue]Analizar[/bold blue] los cambios y crear un commit revisado.",
+        "cmd_view_help": "[bold yellow]Ver[/bold yellow] el diff pendiente de un archivo específico.",
+        "cmd_config_help": "[bold]Ver o actualizar[/bold] la configuración de SuperGit.",
+        "cmd_logs_help": "[bold]Ver[/bold] el registro de auditoría de interacciones de IA.",
+
     }
 }
